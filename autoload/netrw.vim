@@ -5298,31 +5298,6 @@ fun! s:NetrwChgPerm(islocal,curdir)
 endfun
 
 " ---------------------------------------------------------------------
-" s:CheckIfKde: checks if kdeinit is running {{{2
-"    Returns 0: kdeinit not running
-"            1: kdeinit is  running
-fun! s:CheckIfKde()
-  "  call Dfunc("s:CheckIfKde()")
-  " seems kde systems often have gnome-open due to dependencies, even though
-  " gnome-open's subsidiary display tools are largely absent.  Kde systems
-  " usually have "kdeinit" running, though...  (tnx Mikolaj Machowski)
-  if !exists("s:haskdeinit")
-    if has("unix") && executable("ps") && !has("win32unix")
-      let s:haskdeinit= system("ps -e") =~ '\<kdeinit'
-      if v:shell_error
-        let s:haskdeinit = 0
-      endif
-    else
-      let s:haskdeinit= 0
-    endif
-    "   call Decho("setting s:haskdeinit=".s:haskdeinit,'~'.expand("<slnum>"))
-  endif
-
-  "  call Dret("s:CheckIfKde ".s:haskdeinit)
-  return s:haskdeinit
-endfun
-
-" ---------------------------------------------------------------------
 " s:NetrwClearExplore: clear explore variables (if any) {{{2
 fun! s:NetrwClearExplore()
   "  call Dfunc("s:NetrwClearExplore()")
