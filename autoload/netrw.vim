@@ -5061,9 +5061,13 @@ fun! s:viewer()
   endif
 endfun
 
-fun! netrw#Open(file) abort
-  call netrw#Launch(s:viewer() .. ' ' .. shellescape(a:file, 1))
-endfun
+function! netrw#Open(file) abort
+    if has('nvim')
+        execute printf('lua vim.ui.open("%s")', a:file)
+    else
+        call netrw#Launch(s:viewer() .. ' ' .. shellescape(a:file, 1))
+    endif
+endfunction
 
 if !exists('g:netrw_regex_url')
   let g:netrw_regex_url = '\%(\%(http\|ftp\|irc\)s\?\|file\)://\S\{-}'
