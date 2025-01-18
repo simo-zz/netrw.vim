@@ -17,6 +17,9 @@ endif
 
 let g:loaded_netrwPlugin = "v174"
 
+let s:keepcpo = &cpo
+set cpo&vim
+
 " Commands Launch/URL: {{{
 
 command -complete=shellcmd -nargs=1 Launch call netrw#Launch(trim(<q-args>))
@@ -166,12 +169,7 @@ endfunction
 function! NetrwStatusLine()
     if !exists("w:netrw_explore_bufnr") || w:netrw_explore_bufnr != bufnr("%") || !exists("w:netrw_explore_line") || w:netrw_explore_line != line(".") || !exists("w:netrw_explore_list")
         let &stl= s:netrw_explore_stl
-        if exists("w:netrw_explore_bufnr")
-            unlet w:netrw_explore_bufnr
-        endif
-        if exists("w:netrw_explore_line")
-            unlet w:netrw_explore_line
-        endif
+        unlet! w:netrw_explore_bufnr w:netrw_explore_line
         return ""
     else
         return "Match ".w:netrw_explore_mtchcnt." of ".w:netrw_explore_listlen
@@ -203,5 +201,8 @@ function! NetUserPass(...)
 endfunction
 
 " }}}
+
+let &cpo= s:keepcpo
+unlet s:keepcpo
 
 " vim:ts=8 sts=4 sw=4 et fdm=marker
