@@ -19,22 +19,6 @@ if &cp || exists("g:loaded_netrw")
   finish
 endif
 
-" Check that vim has patches that netrw requires.
-" Patches needed for v7.4: 1557, and 213.
-" (netrw will benefit from vim's having patch#656, too)
-let s:needspatches=[1557,213]
-if exists("s:needspatches")
-  for ptch in s:needspatches
-    if v:version < 704 || (v:version == 704 && !has("patch".ptch))
-      if !exists("s:needpatch{ptch}")
-        unsilent echomsg "***sorry*** this version of netrw requires vim v7.4 with patch#".ptch
-      endif
-      let s:needpatch{ptch}= 1
-      finish
-    endif
-  endfor
-endif
-
 let g:loaded_netrw = "v175"
 
 let s:keepcpo= &cpo
@@ -462,10 +446,12 @@ else
   call s:NetrwInit("g:netrw_localmkdir","mkdir")
 endif
 call s:NetrwInit("g:netrw_remote_mkdir","mkdir")
+
 if exists("g:netrw_local_movecmd")
   let g:netrw_localmovecmd= g:netrw_local_movecmd
   call netrw#ErrorMsg(s:NOTE,"g:netrw_local_movecmd is deprecated in favor of g:netrw_localmovecmd",88)
 endif
+
 if !exists("g:netrw_localmovecmd")
   if has("win32")
     if g:netrw_cygwin
@@ -480,9 +466,7 @@ if !exists("g:netrw_localmovecmd")
     let g:netrw_localmovecmd= ""
   endif
 endif
-" following serves as an example for how to insert a version&patch specific test
-"if v:version < 704 || (v:version == 704 && !has("patch1107"))
-"endif
+
 call s:NetrwInit("g:netrw_liststyle"  , s:THINLIST)
 " sanity checks
 if g:netrw_liststyle < 0 || g:netrw_liststyle >= s:MAXLIST
@@ -4462,16 +4446,16 @@ fun! s:NetrwBookmark(del,...)
     let i = 1
     while i <= a:0
       if islocal
-        if v:version > 704 || (v:version == 704 && has("patch656"))
-          let mbfiles= glob(fnameescape(a:{i}),0,1,1)
-        else
-          let mbfiles= glob(fnameescape(a:{i}),0,1)
-        endif
+        let mbfiles = glob(fnameescape(a:{i}), 0, 1, 1)
       else
-        let mbfiles= [a:{i}]
+        let mbfiles = [a:{i}]
       endif
       for mbfile in mbfiles
-        if a:del|call s:DeleteBookmark(mbfile)|else|call s:MakeBookmark(mbfile)|endif
+        if a:del
+            call s:DeleteBookmark(mbfile)
+        else
+            call s:MakeBookmark(mbfile)
+        endif
       endfor
       let i= i + 1
     endwhile
@@ -5415,11 +5399,7 @@ fun! s:NetrwGlob(direntry,expr,pare)
       " escape [ so it is not detected as wildcard character, see :h wildcard
       let path= substitute(path, '[', '[[]', 'g')
     endif
-    if v:version > 704 || (v:version == 704 && has("patch656"))
-      let filelist= glob(path,0,1,1)
-    else
-      let filelist= glob(path,0,1)
-    endif
+    let filelist = glob(path, 0, 1, 1)
     if a:pare
       let filelist= map(filelist,'substitute(v:val, "^.*/", "", "")')
     endif
@@ -6275,11 +6255,7 @@ fun! s:NetrwMarkFiles(islocal,...)
   let i      = 1
   while i <= a:0
     if a:islocal
-      if v:version > 704 || (v:version == 704 && has("patch656"))
-        let mffiles= glob(a:{i},0,1,1)
-      else
-        let mffiles= glob(a:{i},0,1)
-      endif
+      let mffiles= glob(a:{i}, 0, 1, 1)
     else
       let mffiles= [a:{i}]
     endif
@@ -7385,12 +7361,7 @@ fun! s:NetrwMarkFileRegexp(islocal)
     " get the matching list of files using local glob()
     "   call Decho("handle local regexp",'~'.expand("<slnum>"))
     let dirname = escape(b:netrw_curdir,g:netrw_glob_escape)
-    if v:version > 704 || (v:version == 704 && has("patch656"))
-      let filelist= glob(s:ComposePath(dirname,regexp),0,1,1)
-    else
-      let files   = glob(s:ComposePath(dirname,regexp),0,0)
-      let filelist= split(files,"\n")
-    endif
+    let filelist= glob(s:ComposePath(dirname,regexp),0,1,1)
     "   call Decho("files<".string(filelist).">",'~'.expand("<slnum>"))
 
     " mark the list of files
@@ -11737,8 +11708,8 @@ endfun
 fun! s:Strlen(x)
   "  "" call Dfunc("s:Strlen(x<".a:x."> g:Align_xstrlen=".g:Align_xstrlen.")")
 
-  if v:version >= 703 && exists("*strdisplaywidth")
-    let ret= strdisplaywidth(a:x)
+  if exists("*strdisplaywidth")
+    let ret = strdisplaywidth(a:x)
 
   elseif type(g:Align_xstrlen) == 1
     " allow user to specify a function to compute the string length  (ie. let g:Align_xstrlen="mystrlenfunc")
@@ -11747,13 +11718,13 @@ fun! s:Strlen(x)
   elseif g:Align_xstrlen == 1
     " number of codepoints (Latin a + combining circumflex is two codepoints)
     " (comment from TM, solution from NW)
-    let ret= strlen(substitute(a:x,'.','c','g'))
+    let ret = strlen(substitute(a:x,'.','c','g'))
 
   elseif g:Align_xstrlen == 2
     " number of spacing codepoints (Latin a + combining circumflex is one spacing
     " codepoint; a hard tab is one; wide and narrow CJK are one each; etc.)
     " (comment from TM, solution from TM)
-    let ret=strlen(substitute(a:x, '.\Z', 'x', 'g'))
+    let ret = strlen(substitute(a:x, '.\Z', 'x', 'g'))
 
   elseif g:Align_xstrlen == 3
     " virtual length (counting, for instance, tabs as anything between 1 and
@@ -11763,14 +11734,14 @@ fun! s:Strlen(x)
     let modkeep= &l:mod
     exe "norm! o\<esc>"
     call setline(line("."),a:x)
-    let ret= virtcol("$") - 1
+    let ret = virtcol("$") - 1
     d
     NetrwKeepj norm! k
-    let &l:mod= modkeep
+    let &l:mod = modkeep
 
   else
     " at least give a decent default
-    let ret= strlen(a:x)
+    let ret = strlen(a:x)
   endif
   "  "" call Dret("s:Strlen ".ret)
   return ret
