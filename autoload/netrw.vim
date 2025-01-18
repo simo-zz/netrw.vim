@@ -194,6 +194,12 @@ let s:WARNING = 1
 let s:ERROR   = 2
 call s:NetrwInit("g:netrw_errorlvl", s:NOTE)
 
+let s:has_balloon = !has('nvim') &&
+            \ has("balloon_eval") &&
+            \ has("syntax") &&
+            \ exists("g:syntax_on") &&
+            \ !exists("g:netrw_nobeval")
+
 " ---------------------------------------------------------------------
 " Default option values: {{{2
 let g:netrw_localcopycmdopt    = ""
@@ -581,22 +587,14 @@ call s:NetrwInit("s:netrw_posn",'{}')
 " ======================
 "  Netrw Initialization: {{{1
 " ======================
-if v:version >= 700 && has("balloon_eval") && !exists("s:initbeval") && !exists("g:netrw_nobeval") && has("syntax") && exists("g:syntax_on")
-  " call Decho("installed beval events",'~'.expand("<slnum>"))
+if s:has_balloon
   let &l:bexpr = "netrw#BalloonHelp()"
-  " call Decho("&l:bexpr<".&l:bexpr."> buf#".bufnr())
-  au FileType netrw      setl beval
-  au WinLeave *          if &ft == "netrw" && exists("s:initbeval")|let &beval= s:initbeval|endif
-  au VimEnter *          let s:initbeval= &beval
-  "else " Decho
-  " if v:version < 700           | call Decho("did not install beval events: v:version=".v:version." < 700","~".expand("<slnum>"))     | endif
-  " if !has("balloon_eval")      | call Decho("did not install beval events: does not have balloon_eval","~".expand("<slnum>"))        | endif
-  " if exists("s:initbeval")     | call Decho("did not install beval events: s:initbeval exists","~".expand("<slnum>"))                | endif
-  " if exists("g:netrw_nobeval") | call Decho("did not install beval events: g:netrw_nobeval exists","~".expand("<slnum>"))            | endif
-  " if !has("syntax")            | call Decho("did not install beval events: does not have syntax highlighting","~".expand("<slnum>")) | endif
-  " if exists("g:syntax_on")     | call Decho("did not install beval events: g:syntax_on exists","~".expand("<slnum>"))                | endif
+  au FileType netrw setl beval
+  au WinLeave * if &ft == "netrw" && exists("s:initbeval") | let &beval = s:initbeval | endif
+  au VimEnter * let s:initbeval = &beval
 endif
-au WinEnter *   if &ft == "netrw"|call s:NetrwInsureWinVars()|endif
+
+au WinEnter * if &ft == "netrw" | call s:NetrwInsureWinVars() | endif
 
 if g:netrw_keepj =~# "keepj"
   com! -nargs=*  NetrwKeepj      keepj <args>
@@ -611,50 +609,46 @@ endif
 
 " ---------------------------------------------------------------------
 " netrw#BalloonHelp: {{{2
-if v:version >= 700 && has("balloon_eval") && has("syntax") && exists("g:syntax_on") && !exists("g:netrw_nobeval")
-  " call Decho("loading netrw#BalloonHelp()",'~'.expand("<slnum>"))
-  fun! netrw#BalloonHelp()
-    if &ft != "netrw"
-      return ""
-    endif
-    if exists("s:popuperr_id") && popup_getpos(s:popuperr_id) != {}
-      " popup error window is still showing
-      " s:pouperr_id and s:popuperr_text are set up in netrw#ErrorMsg()
-      if exists("s:popuperr_text") && s:popuperr_text != "" && v:beval_text != s:popuperr_text
-        " text under mouse hasn't changed; only close window when it changes
-        call popup_close(s:popuperr_id)
-        unlet s:popuperr_text
-      else
-        let s:popuperr_text= v:beval_text
-      endif
-      let mesg= ""
-    elseif !exists("w:netrw_bannercnt") || v:beval_lnum >= w:netrw_bannercnt || (exists("g:netrw_nobeval") && g:netrw_nobeval)
-      let mesg= ""
-    elseif     v:beval_text == "Netrw" || v:beval_text == "Directory" || v:beval_text == "Listing"
-      let mesg = "i: thin-long-wide-tree  gh: quick hide/unhide of dot-files   qf: quick file info  %:open new file"
-    elseif     getline(v:beval_lnum) =~ '^"\s*/'
-      let mesg = "<cr>: edit/enter   o: edit/enter in horiz window   t: edit/enter in new tab   v:edit/enter in vert window"
-    elseif     v:beval_text == "Sorted" || v:beval_text == "by"
-      let mesg = 's: sort by name, time, file size, extension   r: reverse sorting order   mt: mark target'
-    elseif v:beval_text == "Sort"   || v:beval_text == "sequence"
-      let mesg = "S: edit sorting sequence"
-    elseif v:beval_text == "Hiding" || v:beval_text == "Showing"
-      let mesg = "a: hiding-showing-all   ctrl-h: editing hiding list   mh: hide/show by suffix"
-    elseif v:beval_text == "Quick" || v:beval_text == "Help"
-      let mesg = "Help: press <F1>"
-    elseif v:beval_text == "Copy/Move" || v:beval_text == "Tgt"
-      let mesg = "mt: mark target   mc: copy marked file to target   mm: move marked file to target"
-    else
-      let mesg= ""
-    endif
-    return mesg
-  endfun
-  "else " Decho
-  " if v:version < 700            |call Decho("did not load netrw#BalloonHelp(): vim version ".v:version." < 700 -","~".expand("<slnum>"))|endif
-  " if !has("balloon_eval")       |call Decho("did not load netrw#BalloonHelp(): does not have balloon eval","~".expand("<slnum>"))       |endif
-  " if !has("syntax")             |call Decho("did not load netrw#BalloonHelp(): syntax disabled","~".expand("<slnum>"))                  |endif
-  " if !exists("g:syntax_on")     |call Decho("did not load netrw#BalloonHelp(): g:syntax_on n/a","~".expand("<slnum>"))                  |endif
-  " if  exists("g:netrw_nobeval") |call Decho("did not load netrw#BalloonHelp(): g:netrw_nobeval exists","~".expand("<slnum>"))           |endif
+
+if s:has_balloon
+    function! netrw#BalloonHelp()
+        " popup error window is still showing
+        " s:pouperr_id and s:popuperr_text are set up in netrw#ErrorMsg()
+        if exists("s:popuperr_id") && popup_getpos(s:popuperr_id) != {}
+            if exists("s:popuperr_text") && s:popuperr_text != "" && v:beval_text != s:popuperr_text
+                " text under mouse hasn't changed; only close window when it changes
+                call popup_close(s:popuperr_id)
+                unlet s:popuperr_text
+            else
+                let s:popuperr_text= v:beval_text
+            endif
+            return ""
+
+        elseif v:beval_text == "Netrw" || v:beval_text == "Directory" || v:beval_text == "Listing"
+            return "i: thin-long-wide-tree  gh: quick hide/unhide of dot-files   qf: quick file info  %:open new file"
+
+        elseif getline(v:beval_lnum) =~ '^"\s*/'
+            return "<cr>: edit/enter   o: edit/enter in horiz window   t: edit/enter in new tab   v:edit/enter in vert window"
+
+        elseif v:beval_text == "Sorted" || v:beval_text == "by"
+            return 's: sort by name, time, file size, extension   r: reverse sorting order   mt: mark target'
+
+        elseif v:beval_text == "Sort"   || v:beval_text == "sequence"
+            return "S: edit sorting sequence"
+
+        elseif v:beval_text == "Hiding" || v:beval_text == "Showing"
+            return "a: hiding-showing-all   ctrl-h: editing hiding list   mh: hide/show by suffix"
+
+        elseif v:beval_text == "Quick" || v:beval_text == "Help"
+            return "Help: press <F1>"
+
+        elseif v:beval_text == "Copy/Move" || v:beval_text == "Tgt"
+            return "mt: mark target   mc: copy marked file to target   mm: move marked file to target"
+
+        endif
+
+        return ""
+    endfunction
 endif
 
 " ------------------------------------------------------------------------
@@ -3830,7 +3824,8 @@ fun! s:NetrwBrowse(islocal,dirname)
   else
     NetrwKeepj call s:SetRexDir(a:islocal,b:netrw_curdir)
   endif
-  if v:version >= 700 && has("balloon_eval") && &beval == 0 && &l:bexpr == "" && !exists("g:netrw_nobeval")
+
+  if s:has_balloon && &beval == 0 && &l:bexpr == ""
     let &l:bexpr= "netrw#BalloonHelp()"
     setl beval
   endif
@@ -11263,7 +11258,8 @@ fun! s:NetrwEnew(...)
       endif
     endif
   endif
-  if v:version >= 700 && has("balloon_eval") && !exists("s:initbeval") && !exists("g:netrw_nobeval") && has("syntax") && exists("g:syntax_on")
+
+  if s:has_balloon
     let &l:bexpr = "netrw#BalloonHelp()"
   endif
 
@@ -11927,4 +11923,5 @@ unlet s:keepcpo
 " ===============
 " Modelines: {{{1
 " ===============
-" vim:ts=8 sts=2 sw=2 et fdm=marker
+
+" vim:ts=8 sts=4 sw=4 et fdm=marker
