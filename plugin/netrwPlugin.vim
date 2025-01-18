@@ -111,6 +111,12 @@ endif
 " LocalBrowse: invokes netrw#LocalBrowseCheck() on directory buffers {{{
 
 function! s:LocalBrowse(dirname)
+    " do not trigger in the terminal
+    " https://github.com/vim/vim/issues/16463
+    if &buftype ==# 'terminal'
+        return
+    endif
+
     if !exists("s:vimentered")
         " If s:vimentered doesn't exist, then the VimEnter event hasn't fired.  It will,
         " and so s:VimEnter() will then be calling this routine, but this time with s:vimentered defined.
