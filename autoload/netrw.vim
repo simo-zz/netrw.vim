@@ -10636,22 +10636,6 @@ endfun
 " Support Functions: {{{1
 
 " ---------------------------------------------------------------------
-" netrw#Access: intended to provide access to variable values for netrw's test suite {{{2
-"   0: marked file list of current buffer
-"   1: marked file target
-fun! netrw#Access(ilist)
-  if     a:ilist == 0
-    if exists("s:netrwmarkfilelist_".bufnr('%'))
-      return s:netrwmarkfilelist_{bufnr('%')}
-    else
-      return "no-list-buf#".bufnr('%')
-    endif
-  elseif a:ilist == 1
-    return s:netrwmftgt
-  endif
-endfun
-
-" ---------------------------------------------------------------------
 " netrw#Call: allows user-specified mappings to call internal netrw functions {{{2
 fun! netrw#Call(funcname,...)
   return call("s:".a:funcname,a:000)
